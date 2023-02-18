@@ -1,43 +1,69 @@
+import os
+from flask import Flask, render_template, request, jsonify
 import requests
 from bs4 import BeautifulSoup
 import openai
 
-openai.api_key = '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'
+# Set OpenAI API key
+openai.api_key = os.environ.get('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')
 
-def search(query, num_results=10):
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/search', methods=['POST'])
+def search():
+    # Get user input
+    query = request.form['query']
+    num_results = int(request.form.get('num_results', 10))
+    results_per_page = int(request.form.get('results_per_page', 5))
+
+    # Perform search
     urls = []
     start = 0
-
     while len(urls) < num_results:
         url = 'https://www.google.com/search?q=' + query + '&start=' + str(start)
-        response = requests.get(url)
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for result in soup.find_all('div', class_='r'):
+                link = result.find('a')['href'][7:]
+                if link.startswith('http') or link.startswith('https'):
+                    urls.append(link)
+                if len(urls) == num_results:
+                    break
+            start += 10
+        except requests.exceptions.RequestException as e:
+            return jsonify({'error': 'Error: Unable to retrieve search results.'})
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+    # Paginate results
+    num_pages = (num_results + results_per_page - 1) // results_per_page
+    results = []
+    for i in range(num_pages):
+        start_index = i * results_per_page
+        end_index = min((i + 1) * results_per_page, num_results)
+        page_urls = urls[start_index:end_index]
 
-        for result in soup.find_all('div', class_='r'):
-            link = result.find('a')['href'][7:]
-            urls.append(link)
+        # Generate response for each URL on the current page
+        for url in page_urls:
+            try:
+                response = requests.get(url)
+                soup = BeautifulSoup(response.text, 'html.parser')
+                text = soup.get_text()
+                summary = summarize(text)
+                chat_response = chat(summary)
+                result = {
+                    'url': url,
+                    'summary': summary,
+                    'chat_response': chat_response
+                }
+                results.append(result)
+            except:
+                pass
 
-            if len(urls) == num_results:
-                break
-
-        start += 10
-
-    return urls
-
-def generate_response(url):
-    try:
-        response = requests.get(url)
-    except:
-        return {'summary': 'Error: Unable to retrieve webpage content', 'chat_response': ''}
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    text = soup.get_text()
-
-    summary = summarize(text)
-    chat_response = chat(summary)
-
-    return {'summary': summary, 'chat_response': chat_response}
+    return jsonify({'results': results})
 
 def summarize(text):
     try:
@@ -73,27 +99,5 @@ def chat(prompt):
 
     return chat_response
 
-# User input
-query = input("Enter a search query: ")
-num_results = int(input("Enter the number of search results to return (default is 10): ") or 10)
-results_per_page = int(input("Enter the number of results to display per page (default is 5): ") or 5)
-
-# Perform search
-urls = search(query, num_results)
-
-# Paginate results
-num_pages = (num_results + results_per_page - 1) // results_per_page
-for i in range(num_pages):
-    start_index = i * results_per_page
-    end_index = min((i + 1) * results_per_page, num_results)
-    page_urls = urls[start_index:end_index]
-
-    # Generate response for each URL on the current page
-    for url in page_urls:
-        response = generate_response(url)
-        print("Link:", url)
-        print("Summary:", response['summary'])
-        print("Chat Response:", response['chat_response'])
-
-    print("Press Enter to view the next page...")
-    input()
+if __name__ == '__main__':
+    app.run(debug=True)
