@@ -1,0 +1,54 @@
+/* Center the search input form */
+.search-form {
+  margin: 0 auto;
+  max-width: 600px;
+}
+
+/* Style the search input */
+.search-input {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Style the search button */
+.search-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Style the results section */
+.results-section {
+  margin-top: 24px;
+  display: none;
+}
+
+/* Style the result cards */
+.result-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Style the result titles */
+.result-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Style the result summaries */
+.result-summary {
+  margin-top: 8px;
+  font-size: 16px;
+}
